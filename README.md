@@ -40,15 +40,35 @@ técnicas contra sistemas de terceiros é crime no Brasil
 | `requirements.txt` | Dependências (Flask, bcrypt) |
 | `wordlists/usuarios.txt` | Lista de usuários para o Hydra |
 | `wordlists/senhas.txt` | Dicionário de senhas (as fracas caem; a do admin não) |
+| `crack.py` | Quebrador de dicionário offline, didático (plano B ao John/hashcat) |
 | `roteiro-aluno.md` | Passo a passo do aluno |
 | `guia-professor.md` | Guia do docente: 3 fases, respostas e mediação |
 
 ## Instalação (VM do professor)
 
-```bash
-sudo apt update && sudo apt install -y python3-pip sqlite3
-pip3 install -r requirements.txt    # ou: pip3 install Flask bcrypt
+Instale o sistema-alvo. **Em Debian/Kali recentes** o `pip` bloqueia instalação
+global (erro `externally-managed-environment`, PEP 668). Escolha uma via:
 
+**Via A — pacotes do Debian (mais simples, sem pip):**
+```bash
+sudo apt update && sudo apt install -y python3-flask python3-bcrypt sqlite3
+```
+
+**Via B — ambiente virtual (venv), isolado:**
+```bash
+sudo apt install -y python3-venv sqlite3
+python3 -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+```
+(lembre de `source venv/bin/activate` a cada nova sessão; saia com `deactivate`)
+
+**Via C — forçar (só porque é VM de laboratório, descartável):**
+```bash
+pip3 install -r requirements.txt --break-system-packages
+```
+
+Depois:
+```bash
 python3 init_db.py        # cria o banco no modo definido em config.py
 python3 app.py            # sobe o sistema em 0.0.0.0:5000
 ```
@@ -69,5 +89,5 @@ firewall: `sudo ufw allow 5000/tcp`.
 ## As 3 fases (trocar `MODO_SENHA` e rodar `init_db.py` de novo)
 
 1. **`plano`** — senha em texto puro. Vazou o banco, vazou tudo.
-2. **`md5`** — hash fraco. O banco mostra hashes, mas o MD5 cai rápido no ataque offline.
+2. **`md5`** — hash fraco. O banco mostra hashes, mas o MD5 cai rápido no ataque offline (`crack.py`, hashcat ou John jumbo — ver guia do professor, seção 5).
 3. **`bcrypt`** — hash forte com salt. Resiste ao ataque offline; só a senha fraca é o problema.

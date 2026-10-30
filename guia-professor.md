@@ -65,14 +65,14 @@ python3 init_db.py && python3 app.py
    surpreende a turma.*
 5. Mostre o banco de novo: agora são **hashes** (32 caracteres hex), ilegíveis
    a olho nu.
-6. Ataque **offline** com John:
+6. Ataque **offline**. Exporte os hashes e quebre com a ferramenta disponível:
    ```bash
    sqlite3 sistema.db "SELECT usuario||':'||senha FROM usuarios;" > hashes.txt
-   john --format=Raw-MD5 --wordlist=senhas.txt hashes.txt
-   john --show --format=Raw-MD5 hashes.txt
+   python3 crack.py hashes.txt wordlists/senhas.txt   # funciona em qualquer VM
    ```
    As 4 fracas caem **em segundos** (MD5 é rápido). O admin não cai (não está
-   na wordlist).
+   na wordlist). Veja a seção **"Ferramentas de ataque offline"** abaixo para
+   as alternativas hashcat e John e seus pré-requisitos.
 
 ### FASE 3 — `bcrypt` (hash forte com salt)
 ```bash
@@ -85,11 +85,12 @@ python3 init_db.py && python3 app.py
 8. Ataque offline de novo:
    ```bash
    sqlite3 sistema.db "SELECT usuario||':'||senha FROM usuarios;" > hashes.txt
-   john --format=bcrypt --wordlist=senhas.txt hashes.txt
+   python3 crack.py hashes.txt wordlists/senhas.txt
    ```
    As fracas até caem, mas **muito mais devagar** que no MD5 — o bcrypt é lento
    **de propósito**. Explique o impacto em escala: milhões de tentativas por
-   segundo no MD5 × poucos milhares no bcrypt.
+   segundo no MD5 × poucos milhares no bcrypt. (Com hashcat é `-m 3200`; com
+   John jumbo, `--format=bcrypt`.)
 
 > **Fechamento:** o hash protege o **dado armazenado** (se o banco vazar), não
 > a conta contra senha fraca no login. Segurança real = **senha forte** +
@@ -120,7 +121,39 @@ python3 init_db.py && python3 app.py
 
 ---
 
-## 5. Extensões opcionais
+## 5. Ferramentas de ataque offline (leia antes da aula!)
+
+O comando "clássico" `john --format=Raw-MD5` **só funciona no John "jumbo"**
+(o que vem no Kali). Em VMs enxutas de laboratório isso costuma falhar; por
+isso o material usa o `crack.py` como caminho principal. Panorama:
+
+| Ferramenta | Onde funciona | Observações |
+|---|---|---|
+| **`crack.py`** | Qualquer VM com Python 3 | Recomendado. Sem OpenCL, sem RAM extra. Detecta MD5 e bcrypt sozinho. Didático: mostra o mecanismo. |
+| **hashcat** | Debian/Kali, `apt install hashcat` | Em VM sem GPU precisa de `pocl-opencl-icd`. Em VM com pouca RAM (~1 GB) pode dar *"Not enough allocatable device memory"* — nesse caso use `-O` (kernels otimizados) ou dê 2 GB+ à VM. Use `--username` para ignorar o `usuario:`. |
+| **John "jumbo"** | Kali (já vem) | `--format=Raw-MD5` e `--format=bcrypt` como no roteiro. |
+| **John "core"** | Debian padrão (v1.9.0) | **NÃO quebra MD5 cru** — só `md5crypt`/`bcrypt`/`descrypt`. `--list=formats` nem existe. Não use para esta atividade. |
+
+Como saber qual John você tem: `john 2>&1 | head -1`. Se **não** aparecer a
+palavra `jumbo`, é o core — prefira o `crack.py` ou o hashcat.
+
+Comandos de referência (MD5 / bcrypt):
+```bash
+# crack.py (qualquer VM)
+python3 crack.py hashes.txt wordlists/senhas.txt
+
+# hashcat
+hashcat -m 0    -a 0 -O --username hashes.txt wordlists/senhas.txt   # MD5
+hashcat -m 3200 -a 0    --username hashes.txt wordlists/senhas.txt   # bcrypt
+hashcat --username --show hashes.txt
+
+# John jumbo (Kali)
+john --format=Raw-MD5 --wordlist=wordlists/senhas.txt hashes.txt
+john --format=bcrypt  --wordlist=wordlists/senhas.txt hashes.txt
+john --show hashes.txt
+```
+
+## 6. Extensões opcionais
 
 - **Mitigação na prática:** peça aos alunos para propor (ou você implementa ao
   vivo) um bloqueio após 5 tentativas e refaça o Hydra para mostrar o ataque
@@ -130,10 +163,21 @@ python3 init_db.py && python3 app.py
 - **Discussão de caso real:** vazamentos famosos que guardavam senha em texto
   plano ou MD5 — conectar com a atitude de *sigilo no tratamento de dados*.
 
-## 6. Reset / solução de problemas
+## 7. Reset / solução de problemas
 
-- Trocou de modo e deu erro de login? Reinicie o `app.py` (ele lê o modo na
-  importação).
-- `bcrypt` não encontrado? `pip3 install bcrypt`.
-- Quer voltar ao início? Em `config.py` ponha `MODO_SENHA = "plano"` e rode
+- **Trocou de modo e deu erro de login?** Reinicie o `app.py` (ele lê o modo
+  na importação).
+- **`pip install` falha com `externally-managed-environment`?** É o PEP 668
+  (Debian/Kali). Veja as três vias no `README.md` (pacotes apt, venv, ou
+  `--break-system-packages`).
+- **`no such table: usuarios` no `sqlite3`?** O `sqlite3` cria um arquivo vazio
+  se o banco não existe. Rode `python3 init_db.py` **antes** do `SELECT`, e na
+  mesma pasta. Para recomeçar limpo: `rm -f sistema.db && python3 init_db.py`.
+- **`john`: "Unknown ciphertext format name requested"?** É o John "core" do
+  Debian, que não tem `Raw-MD5`. Use `crack.py` ou hashcat (seção 5).
+- **hashcat: "Not enough allocatable device memory"?** VM com pouca RAM.
+  Acrescente `-O`, aumente a RAM da VM, ou use `crack.py`.
+- **`bcrypt` não encontrado?** Instale pela via do `README.md` (ex.:
+  `apt install python3-bcrypt`).
+- **Voltar ao início?** Em `config.py` ponha `MODO_SENHA = "plano"` e rode
   `python3 init_db.py`.

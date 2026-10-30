@@ -126,26 +126,43 @@ as mesmas — muda só a forma de **guardar**.
 
     ________________________________________________________________
 
-### 3c) Ataque OFFLINE (John the Ripper)
+### 3c) Ataque OFFLINE
 
 Agora o atacante tem os **hashes** e vai tentar quebrá-los no próprio PC,
-sem falar com o servidor. O professor exporta os hashes:
+sem falar com o servidor. Primeiro, exporte os hashes do banco "vazado":
 
 ```bash
 sqlite3 sistema.db "SELECT usuario||':'||senha FROM usuarios;" > hashes.txt
+cat hashes.txt
 ```
 
-**Quebrando hash MD5:**
+Use **uma** das ferramentas abaixo (seu professor indica qual está disponível
+no laboratório):
+
+**Opção 1 — crack.py (funciona em qualquer VM, sem instalar nada):**
 ```bash
-john --format=Raw-MD5 --wordlist=senhas.txt hashes.txt
-john --show --format=Raw-MD5 hashes.txt
+python3 crack.py hashes.txt senhas.txt
 ```
 
-**Quebrando hash bcrypt (quando o professor trocar para esse modo):**
+**Opção 2 — hashcat:**
 ```bash
-john --format=bcrypt --wordlist=senhas.txt hashes.txt
-john --show --format=bcrypt hashes.txt
+hashcat -m 0    -a 0 --username hashes.txt senhas.txt   # MD5
+hashcat -m 3200 -a 0 --username hashes.txt senhas.txt   # bcrypt
+hashcat --username --show hashes.txt
 ```
+
+**Opção 3 — John the Ripper (versão "jumbo", como no Kali):**
+```bash
+john --format=Raw-MD5 --wordlist=senhas.txt hashes.txt   # MD5
+john --format=bcrypt  --wordlist=senhas.txt hashes.txt   # bcrypt
+john --show hashes.txt
+```
+
+> 💡 As três fazem a MESMA coisa: para cada palavra da wordlist, aplicam o
+> algoritmo de hash e comparam com o hash vazado. O `crack.py` é "à mão" para
+> você ver o mecanismo; hashcat e John são as versões profissionais e
+> otimizadas. Repare na **velocidade**: MD5 cai quase instantâneo; bcrypt é
+> perceptivelmente mais lento — e isso é proposital.
 
 11. Preencha a comparação:
 
