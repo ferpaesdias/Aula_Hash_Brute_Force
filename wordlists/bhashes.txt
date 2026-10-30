@@ -1,0 +1,5 @@
+joao:$2b$12$PTY4Tnelogun7S06.X0ECO73z0IOGs0VTuPbdeZnFZNfmxoqOL9qe
+maria:$2b$12$Aec0uEkvW5uhBNT1xE54..K43N8BcvfAVSmwO8QxVpaRa0X2xWcPm
+pedro:$2b$12$5lqkfks6mUGsDvWwbgSp7eoSYjNYb7IM9rk5oxU66683MAemQcCMa
+ana:$2b$12$8QHvTcwadhfCMbbz9w7mX.UUWjQ1xzS6y6jed5k.veH1K3yNltMeK
+admin:$2b$12$duY2AR2Z6geIYn9s1vGbNeQdDou3BqqAGnjhpovpkh3c2OPzidA26
